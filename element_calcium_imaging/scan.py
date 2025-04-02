@@ -36,11 +36,11 @@ def activate(
     Dependencies:
     Upstream tables:
         + Session: Parent table to Scan, typically identifying a recording session
-        + Equipment: Reference table for Scan, specifying the equipment used for the
-            acquisition of this scan.
-        + Location: Reference table for ScanLocation, specifying the scanned regions's
-            anatomical location in the brain.
     """
+        #     + Equipment: Reference table for Scan, specifying the equipment used for the
+        #     acquisition of this scan.
+        # + Location: Reference table for ScanLocation, specifying the scanned regions's
+        #     anatomical location in the brain.
 
     if isinstance(linking_module, str):
         linking_module = importlib.import_module(linking_module)
@@ -159,20 +159,20 @@ class Scan(dj.Manual):
 
     Attributes:
         Session (foreign key): A primary key from Session.
-        scan_id (int): Unique Scan ID.
-        Equipment (foreign key, optional): A primary key from Equipment.
+        rec_idx (int): Unique Scan ID.
         AcquisitionSoftware (foreign key): A primary key from AcquisitionSoftware.
         scan_notes (str, optional): Notes of the experimenter regarding the scan.
     """
+    #         Equipment (foreign key, optional): A primary key from Equipment.
 
     definition = """
     -> Session
-    scan_id: int
+    rec_idx: int
     ---
-    -> [nullable] Equipment
     -> AcquisitionSoftware
     scan_notes='' : varchar(4095)
     """
+    #     -> [nullable] Equipment
 
 
 @schema
@@ -181,13 +181,11 @@ class ScanLocation(dj.Manual):
 
     Attributes:
         Scan (foreign key): A primary key from Scan.
-        Locaton (foreign key): A primary key from Location.
+
     """
 
     definition = """ # Anatomical location
     -> Scan
-    ---
-    -> Location
     """
 
 
@@ -523,6 +521,53 @@ class ScanInfo(dj.Imported):
                         for plane_idx in range(nd2_file.sizes.get("Z", 1))
                     ]
                 )
+                       
+        elif acq_software == "thorimage":
+            import utils2p
+            
+            # Find the xml file of the given folder
+            meta = utils2p.find_metadata_file(scan_filepaths)
+            # Class for managing ThorImage metadata.
+            metadata = utils2p.Metadata(meta)
+
+            self.insert1(
+                dict(
+                    key,
+                    nfields= metadata.get_metadata_value('ZStage','frames') ,
+                    nchannels = metadata.get_n_channels(),
+                    # Number of scanning depths = (planes)
+                    ndepths= metadata.get_metadata_value('ZStage','zStreamFrames'), # PVScan_info["num_planes"],
+                    nframes=metadata.get_metadata_value('Streaming','frames'),
+                 #   nrois=PVScan_info["num_rois"],
+                    x= metadata.get_metadata_value('Sample','initialStageLocationX'), #PVScan_info["x_pos"],
+                    y= metadata.get_metadata_value('Sample','initialStageLocationY'), #PVScan_info["y_pos"],
+                 #   z=PVScan_info["z_pos"],
+                    fps = metadata.get_frame_rate(),
+                    bidirectional= metadata.get_metadata_value('LSM','scanMode'),# PVScan_info["bidirectional"],
+                    usecs_per_line= metadata.get_dwell_time(), # PVScan_info["usecs_per_line"],
+                    scan_datetime = metadata.get_date_time(),
+                    scan_duration= metadata.get_dwell_time(), #PVScan_info["scan_duration"],
+                )
+            )
+
+            self.Field.insert(
+                dict(
+                    key,
+                    field_idx= 1,
+                    px_height = metadata.get_num_y_pixels(), 
+                    px_width = metadata.get_num_x_pixels(),
+                    um_height= metadata.get_metadata_value('LSM','heightUM'), #PVScan_info["height_in_um"]
+                    um_width = metadata.get_width(), # PVScan_info["width_in_um"]
+                    field_x= metadata.get_metadata_value('LSM','fineOffsetX'), # PVScan_info["fieldX"], 
+                    field_y= metadata.get_metadata_value('LSM','fineOffsetY'), # PVScan_info["fieldY"],
+                #    field_z=PVScan_info["fieldZ"]
+                #    if PVScan_info["num_planes"] == 1
+                #    else PVScan_info["fieldZ"][plane_idx],
+                    )
+                # for plane_idx in range(PVScan_info["num_planes"])
+            )
+
+        
         elif acq_software == "PrairieView":
             from element_interface import prairie_view_loader
 

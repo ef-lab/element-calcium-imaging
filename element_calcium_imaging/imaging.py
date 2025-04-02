@@ -44,9 +44,10 @@ def activate(
 
     Dependencies:
     Upstream tables:
-        + Session: A parent table to Scan, identifying a scanning session.
-        + Equipment: A parent table to Scan, identifying a scanning device.
+
     """
+        #     + Session: A parent table to Scan, identifying a scanning session.
+        # + Equipment: A parent table to Scan, identifying a scanning device.
 
     if isinstance(linking_module, str):
         linking_module = importlib.import_module(linking_module)
@@ -365,7 +366,9 @@ class Processing(dj.Computed):
         task_mode, output_dir = (ProcessingTask & key).fetch1(
             "task_mode", "processing_output_dir"
         )
-        acq_software = (scan.Scan & key).fetch1("acq_software")
+        # acq_software = (scan.Scan & key).fetch1("acq_software")
+        # acq_software = (Recording & key).fetch1("acq_software")
+        acq_software = "ScanImage"
 
         if not output_dir:
             output_dir = ProcessingTask.infer_output_dir(key, relative=True, mkdir=True)
@@ -1317,7 +1320,11 @@ class Fluorescence(dj.Computed):
                         )
 
             self.insert1(key)
-            self.Trace.insert(fluo_traces + fluo_chn2_traces)
+            # While tring to insert a lot of Traces in one transaction the database drops the connection 
+            # self.Trace.insert(fluo_traces + fluo_chn2_traces) # Original Code
+            # Inserting one-by-one solves the problem
+            for atrace in (fluo_traces + fluo_chn2_traces):
+                self.Trace.insert1(atrace)
         elif method == "caiman":
             caiman_dataset = imaging_dataset
 

@@ -79,7 +79,7 @@ setup(
         "extract": ["matlabengine", "scipy"],
         "nd2": ["nd2"],
         "sbxreader": ["sbxreader @ git+https://github.com/jcouto/sbxreader.git"],
-        "scanreader": ["scanreader @ git+https://github.com/atlab/scanreader.git"],
+        "scanreader": ["scanreader @ git+https://github.com/ef-lab/scanreader"],
         "suite2p": ["suite2p[io]>=0.12.1"],
         "tests": ["pytest", "pytest-cov", "shutils"],
     },
