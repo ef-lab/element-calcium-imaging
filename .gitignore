@@ -126,4 +126,4 @@ example_data
 *.code-workspace
 
 # dash widget
-file_system_backend
+file_system_backend__pycache__/
