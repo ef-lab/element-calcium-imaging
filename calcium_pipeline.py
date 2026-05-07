@@ -8,7 +8,6 @@ from element_calcium_imaging import (
 )
 import element_interface
 import pathlib
-
 import sys
 
 dj.config["enable_python_native_blobs"] = True
@@ -26,9 +25,12 @@ schemata = {'experiment_db'   : 'lab_experiments',
 for schema, value in schemata.items():
     globals()[schema] = dj.create_virtual_module(schema, value) #, create_tables=True, create_schema=True)
 
-prefix = 'lab_Ca_'
+# Set Your prefix and Set "imaging_root_data_dir"
+experiment_dir=  '/mnt/lab/data01/ScanImage_Imager/'
+output_dir_base = '/mnt/local_storage/s2p_output'
+prefix = 'lab_Ca_' 
 
-dj.config['custom']={'database.prefix':prefix}
+dj.config['custom']={'database.prefix':prefix, 'imaging_root_data_dir':experiment_dir, 'output_dir':output_dir_base} #, 'imaging_root_data_dir':experiment_dir}#, 'output_dir':output_dir_base}
 
 if "custom" not in dj.config:
     dj.config["custom"] = {}
@@ -45,17 +47,24 @@ dj.config["custom"]["imaging_root_data_dir"] = os.getenv(
 
 db_prefix = dj.config["custom"].get("database.prefix", "")
 
-def replace_directory(a_directory):
-    """
-    Temporary Solution, use common.Paths.getLocal instead
-    """
-    # Define the mapping
-    old_prefix = 'W:/ScanImage\\'
-    new_prefix = '/mnt/lab/data01/ScanImage/'
-
-    # Replace the prefix
-    if a_directory.startswith(old_prefix):
-        return a_directory.replace(old_prefix, new_prefix)
+# REPLAXED by getLocal
+sys.path.append('/home/efadmin/Public/Christos/lab/python/')
+import common
+# def replace_directory(a_directory):
+#     """
+#     Replace Windows path prefix with Linux path prefix.
+#     """
+#     # Define the mapping
+#     old_prefix = 'W:/ScanImage\\'
+#     old_prefix2 = 'W:\ScanImage\\'
+#     new_prefix = '/mnt/lab/data01/ScanImage/'
+#     # Replace the prefix
+#     if a_directory.startswith(old_prefix):
+#         return a_directory.replace(old_prefix, new_prefix)
+#     elif a_directory.startswith(old_prefix2):
+#         return a_directory.replace(old_prefix2, new_prefix)        
+#     return a_directory
+# directory = common.Paths.getLocal(a_directory)
 
 # Declare functions for retrieving data
 def get_imaging_root_data_dir():
@@ -74,7 +83,7 @@ def get_imaging_root_data_dir():
 def get_calcium_imaging_files(scan_key, acq_software: str):
     """Retrieve the list of absolute paths of the calcium imaging files associated with a given Scan and a given acquisition software (e.g. "ScanImage", "PrairieView", etc.)."""
     # Folder structure: root / subject / session / .tif or .sbx or .nd2
-    rep_dir = replace_directory((recording_db.Recording & scan_key).fetch1("target_path"))
+    rep_dir = common.Paths.getLocal((recording_db.Recording & scan_key).fetch1("target_path"))
     print(rep_dir)
     session_dir = element_interface.utils.find_full_path(
         get_imaging_root_data_dir(),

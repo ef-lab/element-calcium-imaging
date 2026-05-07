@@ -1080,7 +1080,7 @@ class Segmentation(dj.Computed):
                             "segmentation_channel": s2p.segmentation_channel,
                             "mask_npix": mask_stat["npix"],
                             "mask_center_x": mask_stat["med"][1],
-                            "mask_center_y": mask_stat["med"][0],
+                            "mask_center_y": mask_stat["med"][0],   
                             "mask_center_z": mask_stat.get("iplane", plane),
                             "mask_xpix": mask_stat["xpix"],
                             "mask_ypix": mask_stat["ypix"],
@@ -1454,8 +1454,20 @@ class Activity(dj.Computed):
                     )
                 ]
 
-                self.insert1(key)
-                self.Trace.insert(spikes)
+                # FailSave for large spike files
+                try:
+                    self.insert1(key)
+                    self.Trace.insert(spikes)
+                except Exception as e:
+                    print(
+                        "Traces spks are too large to insert() simultaneously.\n"
+                        "Falling back to insert1() for each row.\n"
+                        f"Error was: {e}"
+                    )
+                    self.insert1(key)
+                    for spike in spikes:
+                        self.Trace.insert1(spike)
+
         elif method == "caiman":
             caiman_dataset = imaging_dataset
 
